@@ -1,0 +1,114 @@
+//users//
+{
+  "_id": "ObjectId",
+  "name": "string",
+  "email": "string",
+  "batch": "string"
+}
+//codekata//
+{
+    "_id": "ObjectId",
+    "user_id": "ObjectId",
+    "problems_solved": "number"
+  }
+// attendance//
+{
+    "_id": "ObjectId",
+    "user_id": "ObjectId",
+    "date": "ISODate",
+    "status": "string" // Present or Absent
+  }
+  //topics//
+  {
+    "_id": "ObjectId",
+    "name": "string",
+    "date": "ISODate"
+  }
+//  tasks//
+{
+    "_id": "ObjectId",
+    "name": "string",
+    "date": "ISODate",
+    "submitted_by": ["ObjectId"] // Array of user IDs who submitted the task
+  }
+//  company_drives//
+{
+    "_id": "ObjectId",
+    "company_name": "string",
+    "date": "ISODate",
+    "appeared_students": ["ObjectId"] // Array of user IDs who appeared for the drive
+  }
+//mentors//
+{
+    "_id": "ObjectId",
+    "name": "string",
+    "mentees": ["ObjectId"] // Array of user IDs who are mentees
+  }
+//Find all the topics and tasks taught in October//
+const startDate = new Date("2023-10-01");
+const endDate = new Date("2023-10-31");
+
+const topicsInOctober = db.topics.find({
+  date: { $gte: startDate, $lte: endDate }
+});
+
+const tasksInOctober = db.tasks.find({
+  date: { $gte: startDate, $lte: endDate }
+});
+//Find all the company drives between 15-Oct-2020 and 31-Oct-2020.//
+const startDate = new Date("2020-10-15");
+const endDate = new Date("2020-10-31");
+
+const companyDrives = db.company_drives.find({
+  date: { $gte: startDate, $lte: endDate }
+});
+//Find the number of users who are absent and have not submitted tasks between 15-Oct-2020 and 31-Oct-2020//
+const startDate = new Date("2020-10-15");
+const endDate = new Date("2020-10-31");
+
+const absentAndNotSubmitted = db.attendance.aggregate([
+  {
+    $match: {
+      date: { $gte: startDate, $lte: endDate },
+      status: "Absent"
+    }
+  },
+  {
+    $lookup: {
+      from: "tasks",
+      let: { user_id: "$user_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $gte: ["$date", startDate] },
+                { $lte: ["$date", endDate] },
+                { $not: { $in: ["$$user_id", "$submitted_by"] } }
+              ]
+            }
+          }
+        }
+      ],
+      as: "not_submitted_tasks"
+    }
+  },
+  {
+    $match: { not_submitted_tasks: { $ne: [] } }
+  },
+  {
+    $group: {
+      _id: "$user_id"
+    }
+  },
+  {
+    $count: "absent_and_not_submitted"
+  }
+]);
+
+
+
+
+
+
+
